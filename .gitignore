@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+coverage/
+.pnpm-debug.log*
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Caches
+.cache/
+.parcel-cache/
+.turbo/
+
+# Env
+.env*
