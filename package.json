@@ -1,22 +1,13 @@
 {
   "name": "mcmod-env-detector",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts",
-    "start": "tsx src/index.ts"
-  },
-  "dependencies": {
-    "@iarna/toml": "^2.2.5",
-    "adm-zip": "^0.5.16",
-    "cheerio": "^1.1.2",
-    "tsx": "^4.20.6",
-    "undici": "^7.16.0"
-  },
-  "devDependencies": {
-    "@types/adm-zip": "^0.5.7",
-    "@types/node": "^24.8.1",
-    "typescript": "^5.9.3"
+    "ts": "pnpm -C impls/ts start -- ../../mods",
+    "py": "python3 impls/py/mcmod_env_checker.py",
+    "rs": "cargo run --manifest-path impls/rs/Cargo.toml",
+    "start": "pnpm run ts",
+    "dev": "pnpm run ts"
   }
 }

@@ -24,3 +24,7 @@ coverage/
 
 # Env
 .env*
+
+# Rust
+impls/rs/target/
+rust/target/

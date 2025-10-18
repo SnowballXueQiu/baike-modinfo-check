@@ -212,7 +212,8 @@ async function analyzeJar(jarPath: string) {
 }
 
 async function main() {
-  const modsDirArg = process.argv.slice(2)[0];
+  const args = process.argv.slice(2).filter((a) => a !== "--");
+  const modsDirArg = args[0];
   const modsDir = path.resolve(process.cwd(), modsDirArg || DEFAULT_MODS_DIR);
   const jars = fs.existsSync(modsDir)
     ? fs

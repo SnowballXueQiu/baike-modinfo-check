@@ -9,5 +9,5 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["impls/ts/src"]
+  "include": ["src"]
 }

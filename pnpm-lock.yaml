@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  impls/ts:
     dependencies:
       '@iarna/toml':
         specifier: ^2.2.5

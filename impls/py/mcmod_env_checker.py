@@ -21,6 +21,7 @@ import json
 import zipfile
 import html as html_module
 import urllib.parse
+from typing import Optional
 
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -29,7 +30,7 @@ UA = (
 )
 TIMEOUT = 15
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_MODS_DIR = os.path.join(BASE_DIR, "mods")
+DEFAULT_MODS_DIR = os.path.join(os.getcwd(), "mods")
 
 # 可选依赖
 try:
@@ -39,11 +40,11 @@ except Exception:
 
 try:
     from bs4 import BeautifulSoup  # type: ignore
-except Exception:
-    BeautifulSoup = None
+except Exception as e:
+    raise RuntimeError("需要安装 beautifulsoup4 以使用 DOM 选择器解析 HTML。请运行: pip install beautifulsoup4") from e
 
 
-def read_text_from_zip(zf: zipfile.ZipFile, path: str) -> str | None:
+def read_text_from_zip(zf: zipfile.ZipFile, path: str) -> Optional[str]:
     try:
         with zf.open(path) as f:
             return f.read().decode("utf-8", errors="ignore")
@@ -53,7 +54,7 @@ def read_text_from_zip(zf: zipfile.ZipFile, path: str) -> str | None:
         return None
 
 
-def extract_mods_from_toml(toml_text: str | None) -> list[dict]:
+def extract_mods_from_toml(toml_text: Optional[str]) -> list[dict]:
     if not toml_text:
         return []
     blocks = re.findall(
@@ -132,7 +133,7 @@ def list_mod_entries_from_jar(jar_path: str) -> list[dict]:
 
 # 网络层
 
-def fetch_html(url: str) -> str | None:
+def fetch_html(url: str) -> Optional[str]:
     if requests is not None:
         try:
             resp = requests.get(url, headers={"User-Agent": UA}, timeout=TIMEOUT)
@@ -154,40 +155,29 @@ def fetch_html(url: str) -> str | None:
 
 # 解析搜索页
 
-def select_first_class_link_from_search(html: str, prefer_texts: list[str]) -> str | None:
-    # 使用bs4更稳
-    if BeautifulSoup is not None:
-        soup = BeautifulSoup(html, "html.parser")
-        items = soup.select("div.search-result-list div.result-item")
-        candidates: list[tuple[str, str]] = []  # (href, text)
-        for it in items:
-            head_a_list = it.select("div.head a[href]")
-            for a in head_a_list:
-                href = (a.get("href") or "").strip()
-                text = a.get_text(strip=True)
-                if "/class/" in href:
-                    candidates.append((href, text))
-        # 优先匹配文本包含 prefer_texts
-        def normalize(s: str) -> str:
-            return (s or "").lower().replace(" ", "")
-
-        prefers = [normalize(p) for p in prefer_texts if p]
-        for href, text in candidates:
-            nt = normalize(text)
-            if any(p and p in nt for p in prefers):
-                return href
-        # 否则取第一个
-        return candidates[0][0] if candidates else None
-    # 简易回退：正则粗略提取
-    mlist = re.findall(
-        r'<div class="result-item".*?<div class="head">(.*?)</div>', html, re.S
-    )
-    for head_html in mlist:
-        # 找第一个包含 /class/ 的 href
-        mhref = re.search(r'href=\"(https?://[^\"]*\/class\/[^\"]*)\"', head_html)
-        if mhref:
-            return mhref.group(1)
-    return None
+def select_first_class_link_from_search(html: str, prefer_texts: list[str]) -> Optional[str]:
+    soup = BeautifulSoup(html, "html.parser")
+    items = soup.select("div.search-result-list div.result-item")
+    candidates: list[tuple[str, str]] = []  # (href, text)
+    for it in items:
+        head_a_list = it.select("div.head a[href]")
+        for a in head_a_list:
+            href = (a.get("href") or "").strip()
+            text = a.get_text(strip=True)
+            if "/class/" in href:
+                if href.startswith("//"):
+                    href = "https:" + href
+                elif href.startswith("/"):
+                    href = "https://www.mcmod.cn" + href
+                candidates.append((href, text))
+    def normalize(s: str) -> str:
+        return (s or "").lower().replace(" ", "")
+    prefers = [normalize(p) for p in prefer_texts if p]
+    for href, text in candidates:
+        nt = normalize(text)
+        if any(p and p in nt for p in prefers):
+            return href
+    return candidates[0][0] if candidates else None
 
 
 # 解析详情页
@@ -195,41 +185,22 @@ def select_first_class_link_from_search(html: str, prefer_texts: list[str]) -> s
 def parse_class_page(html: str) -> dict:
     env_text = None
     loaders: list[str] = []
-    if BeautifulSoup is not None:
-        soup = BeautifulSoup(html, "html.parser")
-        info = soup.select_one("div.class-info")
-        if info:
-            lis = info.select("div.class-info-left ul li")
-            for li in lis:
-                txt = li.get_text(" ", strip=True)
-                if "运行环境" in txt:
-                    env_text = txt.split("运行环境:")[-1].strip()
-                if "运作方式" in txt:
-                    loaders = [a.get_text(strip=True) for a in li.select("a")]
-    else:
-        # 回退：正则尝试提取
-        m_env_block = re.search(
-            r'<div class="class-info".*?</div>', html, re.S
-        )
-        if m_env_block:
-            block = m_env_block.group(0)
-            m_env_li = re.search(
-                r'(<li[^>]*>[^<]*运行环境:\s*.*?</li>)', block, re.S
-            )
-            if m_env_li:
-                env_li = m_env_li.group(1)
-                env_text = re.sub(r"<[^>]+>", " ", env_li)
-                env_text = env_text.split("运行环境:")[-1].strip()
-            m_loader_li = re.search(r'(<li[^>]*>[^<]*运作方式:.*?</li>)', block, re.S)
-            if m_loader_li:
-                loader_li = m_loader_li.group(1)
-                loaders = re.findall(r">\s*([A-Za-z]+)\s*<", loader_li)
+    soup = BeautifulSoup(html, "html.parser")
+    info = soup.select_one("div.class-info")
+    if info:
+        lis = info.select("div.class-info-left ul li")
+        for li in lis:
+            txt = li.get_text(" ", strip=True)
+            if "运行环境" in txt:
+                env_text = txt.split("运行环境:")[-1].strip()
+            if "运作方式" in txt:
+                loaders = [a.get_text(strip=True) for a in li.select("a")]
     return {"env_text": env_text, "loaders": loaders}
 
 
 # 分类
 
-def classify_environment(env_text: str | None) -> str:
+def classify_environment(env_text: Optional[str]) -> str:
     if not env_text:
         return "unknown"
     t = env_text.replace(" ", "")
@@ -259,7 +230,7 @@ def classify_environment(env_text: str | None) -> str:
     return "both" if ("客户端" in t and "服务端" in t) else "unknown"
 
 
-def search_and_parse_env(mod_id: str, display_name: str | None = None) -> dict:
+def search_and_parse_env(mod_id: str, display_name: Optional[str] = None) -> dict:
     key = mod_id.strip()
     prefer_texts = [mod_id, display_name or ""]
     search_url = f"https://search.mcmod.cn/s?key={urllib.parse.quote_plus(key)}"
