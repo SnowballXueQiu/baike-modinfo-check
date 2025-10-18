@@ -1,6 +1,10 @@
 # macOS
 .DS_Store
 
+# Mods jars: do not track (keep directory with .gitkeep)
+mods/*
+!mods/.gitkeep
+
 # Node / TypeScript
 node_modules/
 dist/
