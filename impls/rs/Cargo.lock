@@ -83,6 +83,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "baike_modinfo_check"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "reqwest",
+ "scraper",
+ "serde",
+ "serde_json",
+ "toml",
+ "urlencoding",
+ "zip",
+]
+
+[[package]]
 name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -909,20 +923,6 @@ dependencies = [
  "string_cache",
  "string_cache_codegen",
  "tendril",
-]
-
-[[package]]
-name = "mcmod_env_rs"
-version = "0.1.0"
-dependencies = [
- "clap",
- "reqwest",
- "scraper",
- "serde",
- "serde_json",
- "toml",
- "urlencoding",
- "zip",
 ]
 
 [[package]]

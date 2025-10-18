@@ -70,8 +70,8 @@
   - 推荐直接调用子包脚本并指定目录：
   - `pnpm -C impls/ts start -- <your-mods-dir>`
 - Python：
-  - 支持参数 `--mods-dir`：
-  - `python3 impls/py/mcmod_env_checker.py --mods-dir <your-mods-dir>`
+  - 使用位置参数 `mods_dir`：
+  - `python3 impls/py/mcmod_env_checker.py <your-mods-dir>`
 - Rust：
   - 通过 `pnpm run rs -- <your-mods-dir>` 传参，或：
   - `cargo run --manifest-path impls/rs/Cargo.toml -- <your-mods-dir>`
