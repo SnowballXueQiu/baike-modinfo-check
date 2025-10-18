@@ -1,5 +1,5 @@
 [package]
-name = "mcmod_env_rs"
+name = "baike_modinfo_check"
 version = "0.1.0"
 edition = "2021"
 
